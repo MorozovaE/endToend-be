@@ -14,6 +14,7 @@ export class CreateProjectDto {
   @ApiProperty({
     type: String,
     description: 'Project description',
+    default: 'project',
     required: false,
   })
   @IsString()

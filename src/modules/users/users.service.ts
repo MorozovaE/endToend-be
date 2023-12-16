@@ -29,11 +29,11 @@ export class UsersService {
     }
   }
 
-  async createUser(createUserDto: CreateUserDto): Promise<CreateUserDto> {
+  async createUser(createUserDto: CreateUserDto): Promise<number> {
     try {
       createUserDto.password = await this.hashPassword(createUserDto.password);
-      await this.usersRepoistory.insert(createUserDto);
-      return createUserDto;
+      const res = await this.usersRepoistory.insert(createUserDto);
+      return Number(res.raw);
     } catch (e) {
       throw new Error(e);
     }

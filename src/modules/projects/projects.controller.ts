@@ -7,13 +7,12 @@ import {
   ParseIntPipe,
   Post,
   Put,
-  Req,
-  UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { plainToClass } from 'class-transformer';
-import { JwtAuthGuard } from '../guards/jwt-guard';
-import { JWTPayload } from '../token/token.service';
+import { Auth } from '../auth/decorators/auth.decorators';
+import { TokenPayload } from '../auth/decorators/token-payload.decorator';
+import { IJwtPayload } from '../token/token.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ResponseProjectDto } from './dto/response-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -21,15 +20,13 @@ import { ProjectsService } from './projects.service';
 
 @ApiTags('Project')
 @Controller('projects')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth('access-token')
+@Auth()
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(private readonly projectsService: ProjectsService) { }
 
   @Get()
-  async findAll(@Req() request) {
-    const user = request.user as JWTPayload;
-    return await this.projectsService.findAll(user.id);
+  async findAll(@TokenPayload() user: IJwtPayload) {
+    return await this.projectsService.findAllByUserId(user.id);
   }
 
   @Get(':id')
@@ -47,12 +44,22 @@ export class ProjectsController {
     status: 201,
     type: ResponseProjectDto,
   })
-  async create(@Body() createProjectDto: CreateProjectDto) {
-    const project = await this.projectsService.create(createProjectDto);
+  async create(
+    @Body() createProjectDto: CreateProjectDto,
+    @TokenPayload() user: IJwtPayload,
+  ) {
+    const project = await this.projectsService.create(
+      user.id,
+      createProjectDto,
+    );
     return plainToClass(ResponseProjectDto, project);
   }
 
   @Put(':id')
+  @ApiOkResponse({
+    status: 200,
+    type: UpdateProjectDto,
+  })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProjectDto: UpdateProjectDto,

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { ProjectMemberService } from '../project_member/project_member.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Project } from './entities/project.entity';
@@ -10,13 +11,15 @@ export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private projectsRepoistory: Repository<Project>,
+    private projectMemberService: ProjectMemberService,
   ) {}
 
-  async findAll(id: number) {
+  async findAllByUserId(userId: number) {
     return await this.projectsRepoistory.find({
       where: {
         projectMembers: {
-          user: { id },
+          user: { id: userId },
+          role: { id: In([1, 2]) },
         },
       },
     });
@@ -32,10 +35,13 @@ export class ProjectsService {
     return await this.projectsRepoistory.delete({ id });
   }
 
-  async create(createProjectDto: CreateProjectDto) {
+  async create(userId: number, createProjectDto: CreateProjectDto) {
     const project = this.projectsRepoistory.create(createProjectDto);
 
     await this.projectsRepoistory.save(project);
+
+    await this.projectMemberService.setCreator(userId, project.id, 1);
+
     return project;
   }
 

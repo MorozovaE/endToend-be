@@ -1,7 +1,13 @@
 import { ProjectMember } from 'src/modules/project_member/entities/project_member.entity';
 import { Sprint } from 'src/modules/sprints/entities/sprint.entity';
 import { Task } from 'src/modules/tasks/entities/task.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Generated,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity()
 export class Project {
@@ -14,12 +20,18 @@ export class Project {
   @Column({ type: 'varchar', nullable: true })
   desc: string;
 
+  @Column({ type: 'varchar' })
+  @Generated('uuid')
+  uuid: string;
+
   @OneToMany(() => Task, (task) => task.project)
   tasks: Task[];
 
   @OneToMany(() => Sprint, (sprint) => sprint.project)
   sprints: Sprint[];
 
-  @OneToMany(() => ProjectMember, (projectMember) => projectMember.project)
+  @OneToMany(() => ProjectMember, (projectMember) => projectMember.project, {
+    cascade: true,
+  })
   projectMembers: ProjectMember[];
 }

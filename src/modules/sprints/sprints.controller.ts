@@ -15,9 +15,12 @@ import { CreateSprintDto } from './dto/create-sprint.dto';
 import { ResponseSprintDto } from './dto/response-sprint.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
 import { SprintsService } from './sprints.service';
+import { Auth } from '../auth/decorators/auth.decorators';
+
 
 @ApiTags('Sprint')
 @Controller('sprints')
+@Auth()
 export class SprintsController {
   constructor(private readonly sprintsService: SprintsService) {}
 

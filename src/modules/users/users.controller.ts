@@ -1,9 +1,9 @@
-import { Body, Controller, Patch, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../guards/jwt-guard';
-import { JWTPayload } from '../token/token.service';
+import { Body, Controller, Patch, Req } from '@nestjs/common';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { IJwtPayload } from '../token/token.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
+import { Auth } from '../auth/decorators/auth.decorators';
 
 @ApiTags('User')
 @Controller('users')
@@ -12,13 +12,12 @@ export class UsersController {
 
   @Patch()
   @ApiResponse({ status: 200, type: UpdateUserDto })
-  @UseGuards(JwtAuthGuard) //to check whether the user is authorized or not
-  @ApiBearerAuth('access-token')
+  @Auth()
   updateUser(
     @Body() updateDto: UpdateUserDto,
     @Req() request,
   ): Promise<UpdateUserDto> {
-    const user = request.user as JWTPayload;
+    const user = request.user as IJwtPayload;
 
     return this.usersService.updateUser(user.email, updateDto);
   }

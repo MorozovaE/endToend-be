@@ -22,6 +22,8 @@ export class Sprint {
   @OneToMany(() => Task, (task) => task.id)
   tasks: Task[];
 
-  @ManyToOne(() => Project, (project) => project.id)
+  @ManyToOne(() => Project, (project) => project.id, {
+    onDelete: 'CASCADE',
+  })
   project: Project;
 }

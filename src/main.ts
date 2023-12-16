@@ -9,12 +9,12 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   app.enableCors({
-    origin: 'http://localhost:3001',
+    origin: 'http://localhost:3000',
     credentials: true,
   });
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(3000);
+  await app.listen(3001);
 }
 bootstrap();

@@ -1,8 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { plainToClass } from 'class-transformer';
 import { AppError } from 'src/common/constants/error';
-import { JWTPayload, TokenService } from '../token/token.service';
+import { IJwtPayload, TokenService } from '../token/token.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UsersService } from '../users/users.service';
 import { AuthResponseUser } from './dto/auth-response-user.dto';
@@ -15,47 +19,51 @@ export class AuthService {
     private readonly tokenService: TokenService,
   ) {}
 
-  async registerUser(createUserDto: CreateUserDto): Promise<CreateUserDto> {
-    try {
-      if (createUserDto.password !== createUserDto.confirmPassword)
-        throw new BadRequestException(AppError.PASSWORD_MISSMATCH);
+  async registerUser(createUserDto: CreateUserDto): Promise<any> {
+    if (createUserDto.password !== createUserDto.confirmPassword)
+      throw new BadRequestException(AppError.PASSWORD_MISSMATCH);
 
-      const existUser = await this.userService.findUserByEmail(
-        createUserDto.email,
-      );
-      if (existUser) throw new BadRequestException(AppError.USER_EXIST);
+    const existUser = await this.userService.findUserByEmail(
+      createUserDto.email,
+    );
+    if (existUser) throw new BadRequestException(AppError.USER_EXIST);
 
-      return this.userService.createUser(createUserDto);
-    } catch (e) {
-      throw new Error(e);
-    }
+    const id = await this.userService.createUser(createUserDto);
+
+    const userData: IJwtPayload = {
+      id,
+      name: createUserDto.firstName,
+      email: createUserDto.email,
+    };
+
+    // login part
+    const token = await this.tokenService.generateJwtToken(userData);
+
+    return { token };
   }
 
   async loginUser(userLoginDto: UserLoginDto): Promise<AuthResponseUser> {
-    try {
-      const existUser = await this.userService.findUserByEmail(
-        userLoginDto.email,
-      );
-      if (!existUser) throw new BadRequestException(AppError.USER_NOT_EXIST);
+    const existUser = await this.userService.findUserByEmail(
+      userLoginDto.email,
+    );
+    if (!existUser) throw new UnauthorizedException(AppError.USER_NOT_EXIST);
 
-      const validatePassword = await bcrypt.compare(
-        userLoginDto.password,
-        existUser.password,
-      );
-      if (!validatePassword) throw new BadRequestException(AppError.WRONG_DATA);
+    const validatePassword = await bcrypt.compare(
+      userLoginDto.password,
+      existUser.password,
+    );
 
-      const userData: JWTPayload = {
-        id: existUser.id,
-        name: existUser.firstName,
-        email: existUser.email,
-      };
+    if (!validatePassword) throw new UnauthorizedException(AppError.WRONG_DATA);
 
-      const token = await this.tokenService.generateJwtToken(userData);
-      const user = await this.userService.findUserByEmail(userLoginDto.email);
+    const userData: IJwtPayload = {
+      id: existUser.id,
+      name: existUser.firstName,
+      email: existUser.email,
+    };
 
-      return plainToClass(AuthResponseUser, { ...user, token });
-    } catch (e) {
-      throw new Error(e);
-    }
+    const token = await this.tokenService.generateJwtToken(userData);
+    const user = await this.userService.findUserByEmail(userLoginDto.email);
+
+    return plainToClass(AuthResponseUser, { ...user, token });
   }
 }

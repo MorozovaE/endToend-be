@@ -20,6 +20,9 @@ export class SprintsService {
           id: projectId,
         },
       },
+      order: {
+        id: 'DESC',
+      },
     });
   }
 
@@ -53,9 +56,6 @@ export class SprintsService {
     await this.sprintRepository.update(id, {
       title: updateSprintDto.title,
       desc: updateSprintDto.desc,
-      project: {
-        id: updateSprintDto.projectId,
-      },
     });
     return id;
   }
