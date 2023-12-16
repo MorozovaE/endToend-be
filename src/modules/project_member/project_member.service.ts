@@ -36,9 +36,6 @@ export class ProjectMemberService {
       }
     })
 
-    console.log("76b13aa4-3f93-4e6a-878a-400ddb35a3b1");
-    
-
     const request = this.projectMemberRepository.insert({
       user: { id: userId },
       role: { id: 3 },
