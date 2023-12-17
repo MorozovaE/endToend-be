@@ -23,25 +23,35 @@ export class ProjectMemberService {
     return project;
   }
 
-  async createRequest({
-    userId,
-    uuid
-  }: {
-    userId: number;
-    uuid: string
-  }) {
+  async createRequest({ userId, uuid }: { userId: number; uuid: string }) {
     const project = await this.projectRepository.findOne({
       where: {
-        uuid: uuid
-      }
-    })
+        uuid: uuid,
+      },
+    });
 
     const request = this.projectMemberRepository.insert({
       user: { id: userId },
       role: { id: 3 },
-      project: { id: project.id},
+      project: { id: project.id },
     });
     return request;
+  }
+
+  async getOutgoingRequests(userId: number) {
+    return await this.projectMemberRepository.find({
+      where: {
+        role: {
+          id: 3,
+        },
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        project: true,
+      },
+    });
   }
 
   async deleteRequest(projectId: number, userId: number) {
@@ -61,22 +71,6 @@ export class ProjectMemberService {
     );
   }
 
-  async getOutgoingRequests(userId: number) {
-    return await this.projectMemberRepository.find({
-      where: {
-        role: {
-          id: 3,
-        },
-        user: {
-          id: userId,
-        },
-      },
-      relations: {
-        project: true,
-      },
-    });
-  }
-
   async getIncomingRequests(userId: number) {
     const projectMembers = await this.projectMemberRepository.find({
       where: {
@@ -87,6 +81,10 @@ export class ProjectMemberService {
         project: true,
       },
     });
+
+    if (projectMembers.length < 1) {
+      return [];
+    }
 
     const projectIds = [projectMembers.map((pm) => pm.project.id)];
 

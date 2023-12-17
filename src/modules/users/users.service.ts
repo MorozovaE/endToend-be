@@ -33,7 +33,8 @@ export class UsersService {
     try {
       createUserDto.password = await this.hashPassword(createUserDto.password);
       const res = await this.usersRepoistory.insert(createUserDto);
-      return Number(res.raw);
+      
+      return Number(res.raw.insertId);
     } catch (e) {
       throw new Error(e);
     }
