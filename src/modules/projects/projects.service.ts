@@ -22,6 +22,11 @@ export class ProjectsService {
           role: { id: In([1, 2]) },
         },
       },
+      relations: {
+        projectMembers: {
+          role: true
+        }
+      }
     });
   }
 
