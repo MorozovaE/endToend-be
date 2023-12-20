@@ -1,4 +1,3 @@
-import { UseGuards } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -8,16 +7,14 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { WsGuard } from '../guards/ws-jwt-guard';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TasksService } from './tasks.service';
 
-@UseGuards(WsGuard)
 @WebSocketGateway({
   cors: {
     origin: '*',
-  }, 
+  },
 })
 export class TasksGateway implements OnGatewayConnection {
   constructor(private tasksService: TasksService) {}
@@ -25,36 +22,64 @@ export class TasksGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
 
-  handleConnection(client: any, ...args: any[]) {
+  handleConnection(client: any, ...args: any[]) {    
     client;
     args;
   }
 
-  roomNameFromId(sprintId: number): string {
-    return `sprint-${sprintId}`;
+  getRoomName(sprintId: number | null, projectId: number): string {
+    if (sprintId) {
+      return `sprint-${sprintId}`;
+    }
+
+    return `backlog-${projectId}`;
+  }
+
+  private async getTasksForSprintOrBacklog(
+    sprintId: number | null,
+    projectId: number,
+  ) {
+    let tasks = [];
+    if (sprintId) {
+      tasks = await this.tasksService.findAllBySprintId(sprintId);
+    } else {
+      tasks = await this.tasksService.findAllInBacklogByProjId(projectId);
+    }
+
+    return tasks;
   }
 
   @SubscribeMessage('subscribeToSprint')
   async subscribeToSprint(
-    @MessageBody() sprintId: any,
+    @MessageBody() data: { sprintId: number | null; projectId: string },
     @ConnectedSocket() client: Socket,
   ) {
     for (const room of client.rooms) {
-      if (room.startsWith('sprint-')) {
+      if (room.startsWith('sprint-') || room.startsWith('backlog-')) {
         client.leave(room);
       }
     }
-    client.join(this.roomNameFromId(sprintId));
+
+    client.join(this.getRoomName(data.sprintId, Number(data.projectId)));
   }
 
   @SubscribeMessage('getTasks')
   async getTasks(
-    @MessageBody() sprintId: any,
+    @MessageBody()
+    data: { sprintId: number | null; projectId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const tasks = await this.tasksService.findAllBySprintId(sprintId);
-
+    let tasks = await this.getTasksForSprintOrBacklog(data.sprintId, Number(data.projectId))
+    
     client.emit('tasks', tasks);
+  }
+
+  @SubscribeMessage('getTask')
+  async getTask(
+    @MessageBody()
+    taskId: number,
+  ) {
+    return this.tasksService.findOne(taskId);
   }
 
   @SubscribeMessage('createTask')
@@ -62,31 +87,37 @@ export class TasksGateway implements OnGatewayConnection {
     const task = await this.tasksService.create(createTaskDto);
     const sprintId = task.sprint.id;
 
-    const tasks = await this.tasksService.findAllBySprintId(sprintId);
-    this.server.to(this.roomNameFromId(sprintId)).emit('tasks', tasks);
+    const tasks = await this.getTasksForSprintOrBacklog(sprintId, task.project.id)
+    this.server
+      .to(this.getRoomName(sprintId, task.project.id))
+      .emit('tasks', tasks);
   }
 
   @SubscribeMessage('editTask')
   async editTask(@MessageBody() updateTaskDto: UpdateTaskDto) {
     const taskId = updateTaskDto.id;
 
-    const [prevSprintId, newSprintId] = await this.tasksService.update(
-      taskId,
-      updateTaskDto,
-    );
+    const [prevSprintId, newSprintId, projectId] =
+      await this.tasksService.update(taskId, updateTaskDto);
 
-    const prevTasks = await this.tasksService.findAllBySprintId(prevSprintId);
-    this.server.to(this.roomNameFromId(prevSprintId)).emit('tasks', prevTasks);
+    let prevTasks = await this.getTasksForSprintOrBacklog(prevSprintId, projectId)
+    this.server
+      .to(this.getRoomName(prevSprintId, projectId))
+      .emit('tasks', prevTasks);
 
-    const tasks = await this.tasksService.findAllBySprintId(newSprintId);
-    this.server.to(this.roomNameFromId(newSprintId)).emit('tasks', tasks);
+    let tasks = await this.getTasksForSprintOrBacklog(newSprintId, projectId)
+    this.server
+      .to(this.getRoomName(newSprintId, projectId))
+      .emit('tasks', tasks);
   }
 
   @SubscribeMessage('deleteTask')
   async deleteTask(@MessageBody() body: any) {
-    await this.tasksService.deleteById(body.taskId);
+    const projectId = await this.tasksService.deleteById(body.taskId);
 
-    const tasks = await this.tasksService.findAllBySprintId(body.sprintId);
-    this.server.to(this.roomNameFromId(body.sprintId)).emit('tasks', tasks);
+    const tasks = await this.getTasksForSprintOrBacklog(body.sprintId, projectId)
+    this.server
+      .to(this.getRoomName(body.sprintId, projectId))
+      .emit('tasks', tasks);
   }
 }

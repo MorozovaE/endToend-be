@@ -11,7 +11,7 @@ import {
 @Entity()
 export class Sprint {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number | null;
 
   @Column({ type: 'varchar', length: 30 })
   title: string;

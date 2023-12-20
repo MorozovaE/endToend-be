@@ -13,6 +13,4 @@ export class WsGuard implements CanActivate {
         // console.log(authorization.slice(authorization.length - 3));
         return true;
     }
-
-
 }

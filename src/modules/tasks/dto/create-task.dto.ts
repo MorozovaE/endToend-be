@@ -21,7 +21,7 @@ export class CreateTaskDto {
   projectId: number;
 
   @IsNumber()
-  sprintId: number;
+  sprintId: number | null;
 
   @IsNumber()
   statusId: number;

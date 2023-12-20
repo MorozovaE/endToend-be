@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Project } from '../projects/entities/project.entity';
 import { Sprint } from '../sprints/entities/sprint.entity';
 import { Status } from '../statuses/entities/status.entity';
@@ -28,9 +28,29 @@ export class TasksService {
     });
   }
 
+  async findAllInBacklogByProjId(projectId: number) {
+    return await this.tasksRepository.find({
+      relations: {
+        status: true,
+      },
+      where: {
+        project: {
+          id: projectId,
+        },
+        sprint: {
+          id: IsNull(),
+        },
+      },
+    });
+  }
+
   async findOne(id: number) {
     return await this.tasksRepository.findOne({
       where: { id },
+      relations: {
+        status: true,
+        sprint: true
+      }
     });
   }
 
@@ -52,7 +72,7 @@ export class TasksService {
   }
 
   /**
-   * @return - resulting tuple [prevSprintId, newSprintId]
+   * @return - resulting tuple [prevSprintId, newSprintId, projectId]
    */
   async update(taskId: number, updateTaskDto: UpdateTaskDto) {
     const task = await this.tasksRepository.findOne({
@@ -61,11 +81,13 @@ export class TasksService {
       },
       relations: {
         sprint: true,
+        project: true,
       },
     });
 
-    const prevSprintId = task.sprint.id;
+    const prevSprintId: number | null = task.sprint ? task.sprint.id : null;
     const newSprintId = updateTaskDto.sprintId;
+    const projectId = task.project.id;
 
     if (!task) {
       throw 'Task not found';
@@ -78,10 +100,20 @@ export class TasksService {
 
     await this.tasksRepository.update(task.id, task);
 
-    return [prevSprintId, newSprintId] as const;
+    return [prevSprintId, newSprintId, projectId] as const;
   }
 
   async deleteById(taskId: number) {
-    await this.tasksRepository.delete({ id: taskId });
+    const task = await this.tasksRepository.findOne({
+      where: { id: taskId },
+      relations: {
+        project: true
+      }
+    });
+    const projectId = task.project.id
+
+    await this.tasksRepository.delete({ id: taskId })
+
+    return projectId
   }
 }
