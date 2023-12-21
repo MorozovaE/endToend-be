@@ -71,7 +71,7 @@ export class TasksGateway implements OnGatewayConnection {
   ) {
     let tasks = await this.getTasksForSprintOrBacklog(data.sprintId, Number(data.projectId))
     
-    client.emit('tasks', tasks);
+    return tasks
   }
 
   @SubscribeMessage('getTask')
