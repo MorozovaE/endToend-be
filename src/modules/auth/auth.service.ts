@@ -6,6 +6,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { plainToClass } from 'class-transformer';
 import { AppError } from 'src/common/constants/error';
+import { MailingService } from '../mailing/mailing.service';
 import { IJwtPayload, TokenService } from '../token/token.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UsersService } from '../users/users.service';
@@ -16,8 +17,13 @@ import { UserLoginDto } from './dto/login-user.dto';
 export class AuthService {
   constructor(
     private readonly userService: UsersService,
+    private mailingRepository: MailingService,
     private readonly tokenService: TokenService,
   ) {}
+
+  async verify(token: string) {
+    return this.userService.verifyByEmail(token);
+  }
 
   async registerUser(createUserDto: CreateUserDto): Promise<any> {
     if (createUserDto.password !== createUserDto.confirmPassword)
@@ -28,7 +34,19 @@ export class AuthService {
     );
     if (existUser) throw new BadRequestException(AppError.USER_EXIST);
 
-    const id = await this.userService.createUser(createUserDto);
+    const emailConfirmationToken =
+      await this.mailingRepository.generateEmailToken();
+
+    const id = await this.userService.createUser(
+      createUserDto,
+      emailConfirmationToken,
+    );
+
+    this.mailingRepository.sendEmailConfirm(
+      createUserDto.email,
+      `${createUserDto.firstName} ${createUserDto.lastName}`,
+      emailConfirmationToken,
+    );
 
     const userData: IJwtPayload = {
       id,
@@ -38,6 +56,8 @@ export class AuthService {
 
     // login part
     const token = await this.tokenService.generateJwtToken(userData);
+
+    // send email
 
     return { token };
   }

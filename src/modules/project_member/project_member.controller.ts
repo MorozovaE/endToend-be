@@ -32,7 +32,7 @@ export class ProjectMemberController {
       uuid: uuid,
     });
 
-    return uuid;
+    return {uuid};
   }
 
   @Get('/outgoing')

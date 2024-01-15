@@ -29,4 +29,7 @@ export class UpdateTaskDto extends PartialType(CreateTaskDto) {
 
   @IsNumber()
   statusId: number;
+
+  @IsNumber()
+  order: number;
 }

@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import configuration from './config/configurations';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { MailingModule } from './modules/mailing/mailing.module';
 import { ProjectMemberModule } from './modules/project_member/project_member.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { Role } from './modules/roles/entities/role.entity';
@@ -26,6 +27,7 @@ import { UsersModule } from './modules/users/users.module';
     TokenModule,
     TasksModule,
     ProjectMemberModule,
+    MailingModule,
     ConfigModule.forRoot({
       load: [configuration],
     }),

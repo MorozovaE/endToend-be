@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Query } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthService } from './auth.service';
@@ -20,5 +20,10 @@ export class AuthController {
   @ApiResponse({ status: 200, type: AuthResponseUser })
   login(@Body() userLoginDto: UserLoginDto): Promise<AuthResponseUser> {
     return this.authService.loginUser(userLoginDto);
+  }
+
+  @Post('verify')
+  verify(@Query('token') token: string) {
+    return this.authService.verify(token);
   }
 }

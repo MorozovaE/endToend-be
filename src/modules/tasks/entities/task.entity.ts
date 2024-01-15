@@ -14,6 +14,9 @@ export class Task {
   @Column({ type: 'varchar', nullable: true })
   desc: string;
 
+  @Column({ type: 'int', nullable: true })
+  order: number | null;
+
   @ManyToOne(() => Sprint, (sprint) => sprint.id, {
     onDelete: 'CASCADE',
   })

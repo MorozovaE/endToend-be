@@ -29,11 +29,27 @@ export class UsersService {
     }
   }
 
-  async createUser(createUserDto: CreateUserDto): Promise<number> {
+  async verifyByEmail(emailConfirmationToken: string) {
+    const user = await this.usersRepoistory.findOne({
+      where: { emailConfirmationToken },
+    });
+    user.emailConfirmed = true;
+    user.emailConfirmationToken = null;
+
+    this.usersRepoistory.save(user);
+  }
+
+  async createUser(
+    createUserDto: CreateUserDto,
+    emailConfirmationToken: string,
+  ): Promise<number> {
     try {
       createUserDto.password = await this.hashPassword(createUserDto.password);
-      const res = await this.usersRepoistory.insert(createUserDto);
-      
+      const res = await this.usersRepoistory.insert({
+        ...createUserDto,
+        emailConfirmationToken,
+      });
+
       return Number(res.raw.insertId);
     } catch (e) {
       throw new Error(e);

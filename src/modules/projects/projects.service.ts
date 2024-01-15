@@ -24,9 +24,9 @@ export class ProjectsService {
       },
       relations: {
         projectMembers: {
-          role: true
-        }
-      }
+          role: true,
+        },
+      },
     });
   }
 

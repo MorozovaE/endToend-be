@@ -18,6 +18,12 @@ export class User {
   @Column({ type: 'varchar' })
   password: string;
 
+  @Column('boolean', { default: false })
+  emailConfirmed: boolean = false;
+
+  @Column({ type: 'varchar', nullable: true })
+  emailConfirmationToken: string;
+
   @OneToMany(() => ProjectMember, (projectUser) => projectUser.id)
   projectUsers: ProjectMember[];
 }
